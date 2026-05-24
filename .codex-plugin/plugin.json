@@ -24,6 +24,12 @@
     "shortDescription": "Robin as your Chief of Staff — skills from Bayram Annakov's 5-week course.",
     "longDescription": "A growing skill bundle from the AI Personal OS course. Currently ships /init-robin and /finish-robin (Workshop 1 identity skills). New skills land here as each workshop ships.",
     "developerName": "Bayram Annakov",
-    "category": "Productivity"
+    "category": "Productivity",
+    "capabilities": [
+      "Identity from AI conversation history",
+      "Chief of Staff onboarding",
+      "Voice & behavior contract"
+    ],
+    "defaultPrompt": "Run /init-robin to set Robin up from my AI conversation history, or /finish-robin to declare goals and achievements."
   }
 }
