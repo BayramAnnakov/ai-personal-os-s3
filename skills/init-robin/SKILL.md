@@ -17,7 +17,7 @@ Before Phase 1, greet the user and explain what's about to happen. Adapt this sc
 > 1. I look at your AI conversation history to learn how you actually work
 > 2. I show you what I found, before drafting anything
 > 3. I may ask a few short questions to fill any gaps
-> 4. I draft 3 files — `CLAUDE.md`, `SOUL.md`, `user-profile.md` — Robin's identity
+> 4. I draft 3 files — your identity root (`CLAUDE.md` on Claude Code, `AGENTS.md` on Codex), `SOUL.md`, `user-profile.md`
 > 5. You review and edit before anything saves
 > 6. We install the files (workspace by default; global only if you say so)
 >
@@ -144,10 +144,12 @@ Read `./robin-from-evidence/evidence.md`. Draft three files in the same `./robin
 
 | File | Function | Voice |
 |---|---|---|
-| `CLAUDE.md` | Installs Robin as the agent persona + binding rules | Imperative, second person ("Always X / Never Y") |
+| Root identity (`CLAUDE.md` on Claude Code, `AGENTS.md` on Codex) | Installs Robin as the agent persona + binding rules | Imperative, second person ("Always X / Never Y") |
 | `SOUL.md` Part A | Behavioral contract — how Robin talks TO the user | Imperative, second person |
 | `SOUL.md` Part B | User's voice — for when Robin writes FOR the user | Descriptive + quoted examples |
 | `user-profile.md` | Who the user is, current state | Descriptive, third person |
+
+**Platform naming:** if you are Claude Code, save the root file as `CLAUDE.md`. If you are Codex, save it as `AGENTS.md`. The remainder of this spec refers to it as `CLAUDE.md` for brevity — swap the filename when writing for Codex. The other two filenames (`SOUL.md`, `user-profile.md`) are identical on both platforms.
 
 ### CLAUDE.md (≤120 lines)
 
@@ -248,29 +250,41 @@ Apply the user's edits. Re-show. Iterate until the user approves.
 
 ## Phase 6 — Install (workspace-first, never destructive)
 
-The drafts are already saved in `./robin-from-evidence/`. Installing them means making Robin read them in future sessions. There are two scopes:
+The drafts are already saved in `./robin-from-evidence/` using the platform-appropriate root filename (`CLAUDE.md` on Claude Code, `AGENTS.md` on Codex — set in Phase 4). Installing them means making Robin read them in future sessions. There are two scopes.
+
+Below, `<ROOT>` is `CLAUDE.md` on Claude Code, `AGENTS.md` on Codex.
 
 ### Default — workspace install
 
 Copy the three files into the current working directory so Robin uses them when invoked from this folder:
 
 ```bash
+# Claude Code (workspace)
 cp ./robin-from-evidence/CLAUDE.md       ./CLAUDE.md
+cp ./robin-from-evidence/SOUL.md         ./SOUL.md
+cp ./robin-from-evidence/user-profile.md ./user-profile.md
+
+# Codex (workspace)
+cp ./robin-from-evidence/AGENTS.md       ./AGENTS.md
 cp ./robin-from-evidence/SOUL.md         ./SOUL.md
 cp ./robin-from-evidence/user-profile.md ./user-profile.md
 ```
 
-If `./CLAUDE.md` already exists, ask the user first. Show a diff. Never overwrite silently.
+If `./<ROOT>` already exists, ask the user first. Show a diff. Never overwrite silently.
 
 ### Optional — global install
 
 Robin then knows the user in every folder. Ask explicitly: *"Install globally so Robin knows you everywhere?"*
 
-If yes, check first whether any target file already exists at `~/.claude/CLAUDE.md`, `~/.claude/SOUL.md`, `~/.claude/user-profile.md` (Codex: `~/.codex/AGENTS.md`, `~/.codex/SOUL.md`, `~/.codex/user-profile.md`).
+If yes, check first whether any target file already exists:
+- Claude Code targets: `~/.claude/CLAUDE.md`, `~/.claude/SOUL.md`, `~/.claude/user-profile.md`
+- Codex targets: `~/.codex/AGENTS.md`, `~/.codex/SOUL.md`, `~/.codex/user-profile.md`
+
+For each target:
 
 - **No existing file** → `cp` the draft into place. Confirm.
 - **Existing file** → STOP. Do not overwrite. Instead:
-  1. Save a backup: `cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak.$(date +%Y%m%d-%H%M%S)`
+  1. Save a backup: `cp <target> <target>.bak.$(date +%Y%m%d-%H%M%S)`
   2. Show a diff between the existing file and the new draft
   3. Ask: *"Replace, merge manually, or skip?"* If "merge manually," leave both files in place and tell the user where the draft lives. If "replace," `cp` over after the backup. If "skip," do nothing.
 

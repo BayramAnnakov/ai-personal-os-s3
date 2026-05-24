@@ -156,6 +156,7 @@ Tell the user:
 > Robin's birth certificate is complete (6 files). Test it now in a fresh session:
 >
 >     What do you know about me now? List 5 things, plus one risk in my CLAUDE.md.
+>     (Codex users: substitute "AGENTS.md" for "CLAUDE.md" above.)
 >
 > Compare Robin's answer to before /init-robin. The delta is the point of W1.
 
