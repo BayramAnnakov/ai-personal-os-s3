@@ -8,36 +8,53 @@ Course materials for **AI Personal OS — твой Chief of Staff за 5 нед�
 
 ## What's in here
 
+This repo is the **`personal-os` plugin** — a growing skill bundle that ships across all 5 workshops. New skills land here as each workshop completes.
+
 ```
 ai-personal-os-s3/
+├── .claude-plugin/plugin.json   # Claude Code plugin manifest
+├── .codex-plugin/plugin.json    # Codex plugin manifest
 ├── skills/
-│   ├── init-robin/       # Workshop 1 · evidence-based identity (CLAUDE.md, SOUL.md, user-profile.md)
-│   └── finish-robin/     # Workshop 1 homework · declared identity (course-goals, goals-2026, achievements)
+│   ├── init-robin/              # W1 · evidence-based identity (CLAUDE.md, SOUL.md, user-profile.md)
+│   └── finish-robin/            # W1 homework · declared identity (course-goals, goals-2026, achievements)
 └── gists/
     └── codex-parity-card.md     # CC ↔ Codex command mapping (pinned in chat W1)
 ```
 
-## Install the skills
+## Install the plugin
 
-### Claude Code
-
-Ask Claude Code:
-> Install the init-robin skill from https://github.com/BayramAnnakov/ai-personal-os-s3
-
-Or manually:
+### Claude Code (recommended)
 
 ```bash
-git clone https://github.com/BayramAnnakov/ai-personal-os-s3 ~/tmp/aipos-s3
-cp -r ~/tmp/aipos-s3/skills/init-robin ~/.claude/skills/
+git clone https://github.com/BayramAnnakov/ai-personal-os-s3 ~/aipos-s3
+claude --plugin-dir ~/aipos-s3
 ```
 
-Then run `/init-robin` in any folder.
+Then run `/init-robin` in any session (CC may show it as `/personal-os:init-robin` — same skill).
 
-### Codex
+To pick up future updates: `cd ~/aipos-s3 && git pull` and restart Claude Code.
+
+### Codex (recommended)
 
 ```bash
-git clone https://github.com/BayramAnnakov/ai-personal-os-s3
-cp -r ai-personal-os-s3/skills/init-robin ~/.codex/skills/
+codex plugin marketplace add BayramAnnakov/ai-personal-os-s3
+# restart Codex
+```
+
+Then run `/init-robin`.
+
+### Fallback (works on both, no plugin support needed)
+
+If your version of CC/Codex doesn't recognize the plugin install, drop the skills in directly:
+
+```bash
+git clone https://github.com/BayramAnnakov/ai-personal-os-s3 ~/aipos-s3
+
+# Claude Code
+mkdir -p ~/.claude/skills && cp -r ~/aipos-s3/skills/* ~/.claude/skills/
+
+# Codex
+mkdir -p ~/.codex/skills && cp -r ~/aipos-s3/skills/* ~/.codex/skills/
 # restart Codex
 ```
 
