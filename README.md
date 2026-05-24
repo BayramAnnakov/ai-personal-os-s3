@@ -43,9 +43,39 @@ codex plugin marketplace add BayramAnnakov/ai-personal-os-s3
 
 Then run `/init-robin`.
 
-### Fallback (works on both, no plugin support needed)
+### No git? Download the ZIP
 
-If your version of CC/Codex doesn't recognize the plugin install, drop the skills in directly:
+If you don't have `git` (or GitHub auth) configured, get the repo as a ZIP:
+
+1. Open https://github.com/BayramAnnakov/ai-personal-os-s3 in a browser
+2. Click the green **Code** button → **Download ZIP**
+3. Unzip it. The folder name will be `ai-personal-os-s3-main`.
+
+Then either point the CLI at the unzipped folder directly:
+
+```bash
+# Claude Code
+claude --plugin-dir ~/Downloads/ai-personal-os-s3-main
+```
+
+Or drop the skills in by hand:
+
+```bash
+# Claude Code
+mkdir -p ~/.claude/skills
+cp -r ~/Downloads/ai-personal-os-s3-main/skills/* ~/.claude/skills/
+
+# Codex
+mkdir -p ~/.codex/skills
+cp -r ~/Downloads/ai-personal-os-s3-main/skills/* ~/.codex/skills/
+# restart Codex
+```
+
+Then run `/init-robin`.
+
+### Fallback for plugin-unaware CLIs (with git)
+
+If your CC/Codex version doesn't recognize the plugin install, drop the skills in directly:
 
 ```bash
 git clone https://github.com/BayramAnnakov/ai-personal-os-s3 ~/aipos-s3
