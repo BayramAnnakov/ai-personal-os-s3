@@ -31,6 +31,20 @@ If no source is found and the user explicitly says they have no history → skip
 
 Read the most recent 30 sessions (or last 30 days, whichever is smaller).
 
+**Sampling.** If the user has hundreds or thousands of sessions, sample the 30 most-recently-modified `.jsonl` files across all project directories by `mtime`. Exclude anything under a `subagents/` subdirectory — those are agent dispatches, not user turns. Note your sampling strategy at the top of `evidence.md`.
+
+**Filtering.** Claude Code `.jsonl` files contain a lot of system noise. Before quoting, strip:
+- `<task-notification>…</task-notification>` blobs
+- `<command-name>…</command-name>` and `<local-command-stdout>` markers
+- `Stop hook feedback:` lines and other hook output
+- `[Request interrupted by user…]` markers
+- `tool_result` content arrays (the AI's tool outputs, not user voice)
+- `<system-reminder>` blocks
+
+Quote only the user's actual typed turns. That is where voice lives.
+
+**Privacy.** Skip personal/sensitive content (medical, relationships, finance). Stay work-focused.
+
 **DO NOT draft any files yet.** This phase is observation only.
 
 Create `./robin-from-evidence/evidence.md` containing:
@@ -124,23 +138,39 @@ Show the user the three drafts. Ask three short questions:
 
 Apply the user's edits. Re-show. Iterate until the user approves.
 
-## Phase 6 — Commit
+## Phase 6 — Install (workspace-first, never destructive)
 
-When the user approves, run (or ask the user to run):
+The drafts are already saved in `./robin-from-evidence/`. Installing them means making Robin read them in future sessions. There are two scopes:
+
+### Default — workspace install
+
+Copy the three files into the current working directory so Robin uses them when invoked from this folder:
 
 ```bash
-# Claude Code
-mv ./robin-from-evidence/CLAUDE.md     ~/.claude/CLAUDE.md
-mv ./robin-from-evidence/SOUL.md       ~/.claude/SOUL.md
-mv ./robin-from-evidence/user-profile.md ~/.claude/user-profile.md
-
-# Codex
-mv ./robin-from-evidence/CLAUDE.md     ~/.codex/AGENTS.md
-mv ./robin-from-evidence/SOUL.md       ~/.codex/SOUL.md
-mv ./robin-from-evidence/user-profile.md ~/.codex/user-profile.md
+cp ./robin-from-evidence/CLAUDE.md       ./CLAUDE.md
+cp ./robin-from-evidence/SOUL.md         ./SOUL.md
+cp ./robin-from-evidence/user-profile.md ./user-profile.md
 ```
 
-Three more files complete Robin's birth certificate (course-goals, goals-2026, achievements). These can't be inferred from conversations — see the homework prompts in `gists/homework-prompts.md`.
+If `./CLAUDE.md` already exists, ask the user first. Show a diff. Never overwrite silently.
+
+### Optional — global install
+
+Robin then knows the user in every folder. Ask explicitly: *"Install globally so Robin knows you everywhere?"*
+
+If yes, check first whether any target file already exists at `~/.claude/CLAUDE.md`, `~/.claude/SOUL.md`, `~/.claude/user-profile.md` (Codex: `~/.codex/AGENTS.md`, `~/.codex/SOUL.md`, `~/.codex/user-profile.md`).
+
+- **No existing file** → `cp` the draft into place. Confirm.
+- **Existing file** → STOP. Do not overwrite. Instead:
+  1. Save a backup: `cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak.$(date +%Y%m%d-%H%M%S)`
+  2. Show a diff between the existing file and the new draft
+  3. Ask: *"Replace, merge manually, or skip?"* If "merge manually," leave both files in place and tell the user where the draft lives. If "replace," `cp` over after the backup. If "skip," do nothing.
+
+Never `mv` from the staging directory — `cp` so the drafts remain in `./robin-from-evidence/` for re-review.
+
+### Next step
+
+Three more files complete Robin's birth certificate (course-goals, goals-2026, achievements). These can't be inferred from conversations — run the companion skill `/finish-robin` to fill them in via short interview.
 
 ## Notes
 
