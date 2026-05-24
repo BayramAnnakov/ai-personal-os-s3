@@ -11,10 +11,10 @@ Course materials for **AI Personal OS — твой Chief of Staff за 5 нед�
 ```
 ai-personal-os-s3/
 ├── skills/
-│   └── init-robin/       # Workshop 1 onboarding skill (evidence-based)
+│   ├── init-robin/       # Workshop 1 · evidence-based identity (CLAUDE.md, SOUL.md, user-profile.md)
+│   └── finish-robin/     # Workshop 1 homework · declared identity (course-goals, goals-2026, achievements)
 └── gists/
-    ├── codex-parity-card.md     # CC ↔ Codex command mapping (pinned in chat W1)
-    └── homework-prompts.md      # 3 short prompts for course-goals, goals-2026, achievements
+    └── codex-parity-card.md     # CC ↔ Codex command mapping (pinned in chat W1)
 ```
 
 ## Install the skills
