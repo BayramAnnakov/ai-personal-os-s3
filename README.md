@@ -34,6 +34,8 @@ Then run `/init-robin` in any session (CC may show it as `/personal-os:init-robi
 
 To pick up future updates: `cd ~/aipos-s3 && git pull` and restart Claude Code.
 
+> **CC GUI users:** if you prefer the UI, open the `/plugin` command and use **Customize → Personal Plugins** to add a local plugin folder (point it at the unzipped repo).
+
 ### Codex (recommended)
 
 ```bash
@@ -42,6 +44,8 @@ codex plugin marketplace add BayramAnnakov/ai-personal-os-s3
 ```
 
 Then run `/init-robin`.
+
+> **Codex Desktop:** the Plugins panel only browses the marketplace — there is no "Upload local plugin" button. If you're on Desktop without git, use the **standalone cp** fallback below (drops the skills directly into `~/.codex/skills/`). Loses the auto-update story but works identically.
 
 ### No git? Download the ZIP
 
