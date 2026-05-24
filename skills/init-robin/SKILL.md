@@ -1,6 +1,6 @@
 ---
 name: init-robin
-description: Initialize Robin's identity (CLAUDE.md, SOUL.md, user-profile.md) from evidence — your AI conversation history (Claude Code sessions, Codex sessions, or exported ChatGPT / Claude.ai). Extracts behavioral evidence (not self-description), interviews you for any gaps, drafts the three files, and asks you to review before writing anything to disk. Use at the start of the AI Personal OS course (Workshop 1) or to refresh Robin's identity from new evidence. Always reviews drafts with you before committing.
+description: Initialize Robin's identity (CLAUDE.md, SOUL.md, user-profile.md) from evidence — your AI conversation history (Claude Code sessions, Codex sessions, or exported ChatGPT / Claude.ai). Extracts behavioral evidence (not self-description), surfaces recurring people / acronyms / project codenames as a seed glossary, interviews you for any gaps, drafts the three files, and asks you to review before writing anything to disk. Use at the start of the AI Personal OS course (Workshop 1) or to refresh Robin's identity from new evidence. Always reviews drafts with you before committing.
 license: MIT
 ---
 
@@ -14,10 +14,10 @@ Before Phase 1, greet the user and explain what's about to happen. Adapt this sc
 
 > Hi — I'm about to set up Robin as your Chief of Staff. This takes about 20 minutes and runs in 6 phases:
 >
-> 1. I look at your AI conversation history to learn how you actually work
+> 1. I look at your AI conversation history — your work patterns, voice, and recurring people / projects / jargon
 > 2. I show you what I found, before drafting anything
 > 3. I may ask a few short questions to fill any gaps
-> 4. I draft 3 files — your identity root (`CLAUDE.md` on Claude Code, `AGENTS.md` on Codex), `SOUL.md`, `user-profile.md`
+> 4. I draft 3 files — your identity root (`CLAUDE.md` on Claude Code, `AGENTS.md` on Codex) with a seed glossary, `SOUL.md`, `user-profile.md`
 > 5. You review and edit before anything saves
 > 6. We install the files (workspace by default; global only if you say so)
 >
@@ -92,6 +92,20 @@ These rules feed directly into CLAUDE.md and SOUL.md Part A in Phase 4. They are
 
 ### Open questions that recur
 What does the user keep returning to?
+
+### People mentioned 3+ times — seed glossary
+For each recurring person:
+- Name (or nickname as the user actually says it)
+- Inferred role / relationship (if extractable from context)
+- N session cites
+
+These feed the `## People` hot-cache table in CLAUDE.md (Phase 4). Capture the form the user actually uses — `Sasha` not `Aleksandr Shestakov`. Decoding the shorthand happens at read time, not write time.
+
+### Acronyms / jargon / internal terms mentioned 3+ times
+For each: term — expansion (if known or inferrable) — N cites — 1 quoted example.
+
+### Projects / codenames mentioned 3+ times
+For each: codename — what it is (if inferrable) — N cites — 1 quoted example.
 
 **Rules:**
 - Every observation must cite a specific session (filename, ID, or date).
@@ -171,10 +185,17 @@ Then sections:
 
 - **Who {NAME} is** — 1-2 sentences from the user-profile highlights (role, what they do, where they work)
 - **Rules** — imperative bullets synthesized from Phase 2 corrections + Phase 3 Cluster B answers. Each rule phrased as `Always X` or `Never Y` in second person. This is the spine of the file.
+  - **Always include this rule** (it's what makes the hot-cache tables below useful):
+    *"Decode shorthand before acting. When the user uses a name, acronym, or project codename, expand it from the People / Terms / Projects tables below before responding. If a term is unknown, ask the user once and add it to the relevant table."*
 - **How {NAME} works** — cadence, focus blocks, preferred tools (from evidence)
 - **Current focus** — what they're working on now
 - **Tool preferences** — from evidence
-- **More context** — pointer line: *"See SOUL.md for voice contract. See user-profile.md for full profile."*
+- **People (hot cache, ≤10 rows)** — top recurring contacts from Phase 2 evidence. Table format: `Nickname | Full name + role`. Skip if Phase 2 found fewer than 3 distinct people; leave the section with a placeholder line *"// no recurring people in evidence yet — populate as you accumulate context"*.
+- **Terms (hot cache, ≤10 rows)** — top recurring acronyms / internal jargon. Table format: `Term | Meaning`. Same placeholder rule if thin.
+- **Projects (hot cache, ≤5 rows)** — active project names / codenames. Table format: `Codename | What it is`. Same placeholder rule if thin.
+- **More context** — pointer line: *"See SOUL.md for voice contract. See user-profile.md for full profile. Deep memory (full glossary, people profiles, project details) lives in `memory/` — populated as Robin accumulates context across the course."*
+
+**Hot-cache discipline (from Anthropic's `memory-management` skill):** these three tables are the HOT CACHE — the ~30-row decoder ring that covers 90% of daily requests. Promote to the table when something is used frequently; demote to `memory/glossary.md` (W2+ material) when stale. Keep the whole CLAUDE.md ≤120 lines.
 
 ### SOUL.md — TWO halves
 
