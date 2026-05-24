@@ -47,6 +47,13 @@ Then run `/init-robin`.
 
 > **Codex Desktop:** the Plugins panel only browses the marketplace — there is no "Upload local plugin" button. If you're on Desktop without git, use the **standalone cp** fallback below (drops the skills directly into `~/.codex/skills/`). Loses the auto-update story but works identically.
 
+### Desktop apps (Claude Desktop / Codex Desktop) — no terminal needed
+
+1. Download **`personal-os-0.1.0.zip`** from the [latest release](https://github.com/BayramAnnakov/ai-personal-os-s3/releases/latest)
+2. Open the Plugins UI in your desktop app → **Upload Plugin** → select the downloaded `.zip`
+
+The same `.zip` works for both Claude Desktop and Codex Desktop — the archive carries both manifests at the root.
+
 ### No git? Download the ZIP
 
 If you don't have `git` (or GitHub auth) configured, get the repo as a ZIP:
