@@ -49,14 +49,14 @@ For each draft note, `ls ~/vault/atomic/*.md` and `grep -ri "<concept keyword>" 
 - Do **not** write any link into a file yet. These are candidates for the human to rule on.
 
 ### 4 · REVIEW GATE (one round — this is where the human thinks)
-Print all draft notes + all proposed connections in one view, numbered. Then:
+Print all draft notes + all proposed connections in one view, numbered. **Then STOP and wait for the user's reply — do not write ANY file or proceed to step 5 until they respond.** Use `AskUserQuestion` (or an unmistakable numbered prompt) so the decision can't be skipped. Then:
 - **Connections — PROPOSE-then-DECIDE.** Ask the user which candidate links to keep, drop, or add, e.g. *"keep 1,3; drop 2; add a link from note B to [[X]]."* You write **only** approved links. For kept links, use the user's "why" if they give one; otherwise keep your one-liner.
 - **DRAFT-IT gate.** Show the drafted note and require the user to **edit at least one sentence** before you save it. If they say "looks good, save it," push back once: *"Change one line first — even a word. The edit is the thinking."* Then save.
 - **IMPORT gate (forced elaborate).** Do **NOT** write any files until the user has **elaborated at least one note** — edited a line, sharpened a claim, or added their own sentence. Say so plainly: *"Pick one note and make it sharper or truer in your words — I won't file the batch until you've touched one. That touch is how an import becomes yours."* (For big batches, require one elaboration per ~20 notes.)
 - **FILE-IT.** No body gate — they wrote it. Just settle the connections.
 
 ### 5 · WRITE
-Get today's date (`date +%Y-%m-%d`). For each approved note, number `NNN` = (count of `~/vault/atomic/YYYY-MM-DD_*.md`) + 1, zero-padded (001, 002…). Write to `~/vault/atomic/YYYY-MM-DD_NNN.md` using the template below. Write **only** the connections the user approved.
+Get today's date (`date +%Y-%m-%d`). Number the FIRST new note `NNN` = (count of existing `~/vault/atomic/YYYY-MM-DD_*.md`) + 1, zero-padded (001, 002…), and **increment NNN for each subsequent note in the batch** so you never overwrite `_001`. Write to `~/vault/atomic/YYYY-MM-DD_NNN.md` using the template below. Write **only** the connections the user approved.
 
 ```
 ---
@@ -95,7 +95,7 @@ If the user rejected all link candidates, that's fine — say "0 connections kep
 
 ## Guardrails
 
-- **One decision round, not a conversation.** Draft everything, propose everything, take one pass of the user's keep/drop/edit, commit. If you find yourself asking about each note in turn, you're doing it wrong.
+- **One decision round, not a conversation — but never zero.** Draft everything, propose everything, take one pass of the user's keep/drop/edit, commit. Speed comes from *batching* everything into that single checkpoint — NOT from skipping it. The "under 3 min / no chatter" guardrail means no per-note back-and-forth; it does NOT license writing files before the user has approved. If you find yourself asking about each note in turn, you're doing it wrong; if you find yourself writing without asking at all, you're doing it more wrong.
 - **Never auto-write a connection.** Every `[[wikilink]]` that lands in a file was approved by the user in step 4. This is the rule that keeps the *connecting* — the deepest part of the thinking — human.
 - **IMPORT never commits un-touched.** The forced-elaborate gate is the difference between a note pile and understanding. An imported note the user never re-read is the LLM's understanding wearing the user's voice. Make them touch one.
 - **Don't force links.** Zero connections is correct for the first handful of notes. Connections compound.
@@ -120,5 +120,5 @@ The same `SKILL.md` works in both tools — the format is the cross-tool standar
 ## Power-user options
 
 - **Contradiction-lint pass** — after writing, grep the vault for notes that now contradict each other or near-duplicate the new ones; print a report (don't auto-edit), ask what to resolve. (Karpathy's "lint" operation.)
-- **Semantic connection-finding** — if `qmd` is installed, use `qmd query "<note's idea, 2-3 sentences>" --limit 10` instead of grep in step 3 to surface conceptual neighbors a keyword grep would miss; still PROPOSE, the user still decides.
+- **Semantic connection-finding** — if `qmd` is installed, use `qmd query "<note's idea, 2-3 sentences>" -n 10` (the count flag is `-n`, not `--limit`) instead of grep in step 3 to surface conceptual neighbors a keyword grep would miss; still PROPOSE, the user still decides.
 - **Provenance schema** — add `source_url` to frontmatter to link back to the original post (the production-vault schema).
