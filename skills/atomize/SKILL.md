@@ -1,6 +1,14 @@
 ---
 name: atomize
 description: Turn content into atomic Zettelkasten notes in ~/vault/atomic/ and keep ~/vault/index.md current. THREE modes by who drafts the note — FILE-IT (you wrote the insight, I only file it), DRAFT-IT (I draft one note from your scattered raw material, you edit a line and approve), IMPORT (I bulk-atomize a source you already authored — transcript, export, daily-logs — you elaborate at least one note before it commits). Connections are PROPOSE-then-DECIDE — I suggest [[wikilinks]] with reasons and flag contradictions, you choose which to keep; I never auto-write a link. Use on /atomize, "atomize this", "break this into notes", or to import an export/transcript/article.
+allowed-tools:
+  - AskUserQuestion
+  - Write
+  - Read
+  - Edit
+  - Bash
+  - Glob
+  - Grep
 license: MIT
 ---
 
