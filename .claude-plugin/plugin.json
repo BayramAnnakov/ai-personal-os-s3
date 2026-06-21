@@ -1,7 +1,7 @@
 {
   "name": "personal-os",
   "description": "AI Personal OS — Robin as Chief of Staff. A growing collection of skills from Bayram Annakov's 5-week course. Identity, knowledge, communications, research, and multi-agent skills land here as each workshop ships. Built on Engelbart's H-LAM/T framework and the agentskills.io open standard.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "Bayram Annakov",
     "url": "https://github.com/BayramAnnakov"
