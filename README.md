@@ -16,7 +16,9 @@ ai-personal-os-s3/
 ├── .codex-plugin/plugin.json    # Codex plugin manifest
 ├── skills/
 │   ├── init-robin/              # W1 · evidence-based identity (CLAUDE.md, SOUL.md, user-profile.md)
-│   └── finish-robin/            # W1 homework · declared identity (course-goals, goals-2026, achievements)
+│   ├── finish-robin/            # W1 homework · declared identity (course-goals, goals-2026, achievements)
+│   ├── atomize/                 # W2 · knowledge OS · atomic Zettelkasten notes into ~/vault/
+│   └── give-robin-a-voice/      # W3 · two-way Telegram for Robin (push + reply + scheduled brief; Bot API, no MCP)
 └── gists/
     └── codex-parity-card.md     # CC ↔ Codex command mapping (pinned in chat W1)
 ```

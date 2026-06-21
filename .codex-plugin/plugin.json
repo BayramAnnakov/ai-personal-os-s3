@@ -1,6 +1,6 @@
 {
   "name": "personal-os",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "AI Personal OS — Robin as Chief of Staff. A growing collection of skills from Bayram Annakov's 5-week course. Identity, knowledge, communications, research, and multi-agent skills land here as each workshop ships. Built on Engelbart's H-LAM/T framework and the agentskills.io open standard.",
   "author": {
     "name": "Bayram Annakov",
@@ -22,14 +22,15 @@
   "interface": {
     "displayName": "AI Personal OS",
     "shortDescription": "Robin as your Chief of Staff — skills from Bayram Annakov's 5-week course.",
-    "longDescription": "A growing skill bundle from the AI Personal OS course. Currently ships /init-robin and /finish-robin (Workshop 1 identity skills). New skills land here as each workshop ships.",
+    "longDescription": "A growing skill bundle from the AI Personal OS course. Ships /init-robin and /finish-robin (W1 identity), /atomize (W2 knowledge), and /give-robin-a-voice (W3 — two-way Telegram for your assistant). New skills land here as each workshop ships.",
     "developerName": "Bayram Annakov",
     "category": "Productivity",
     "capabilities": [
       "Identity from AI conversation history",
       "Chief of Staff onboarding",
-      "Voice & behavior contract"
+      "Knowledge / atomic notes",
+      "Two-way Telegram voice for your assistant"
     ],
-    "defaultPrompt": "Run /init-robin to set Robin up from my AI conversation history, or /finish-robin to declare goals and achievements."
+    "defaultPrompt": "Run /init-robin to set Robin up from your AI history, /atomize to build your knowledge vault, or /give-robin-a-voice to text your assistant on Telegram."
   }
 }
