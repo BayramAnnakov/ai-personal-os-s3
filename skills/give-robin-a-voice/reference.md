@@ -135,11 +135,19 @@ CMD ["python3", "bridge.py"]                        # a worker — no exposed po
    from the env; the `claude` CLI picks up `ANTHROPIC_API_KEY` automatically.
 4. Deploy. Text the bot with the laptop **closed** — it answers.
 
-**Cost — say it plainly.** No real free always-on tier: a tiny worker is ~$1/mo
-of usage, billed on **Hobby** ($5/mo, includes $5 usage) → budget **~$5/mo**.
-The agent also spends **API tokens** through `ANTHROPIC_API_KEY` (per-use, not a
-Claude subscription). $0 option: keep the **local** listener (laptop on). Free
-always-on alternative: **Fly.io**.
+**Cost & auth — say it plainly.** Two bills: the **host** (~$5/mo — Railway
+**Hobby**, $5/mo incl. $5 usage; a tiny worker's ~$1 fits inside it) and the
+**agent** via `ANTHROPIC_API_KEY` (per-use tokens). The cloud agent needs an API
+key, **not** a subscription: a headless OAuth token (`claude setup-token`) 401s
+within ~15 min (it doesn't refresh non-interactively) and the terms route
+always-on automation to the API path. So: **local** listener = the subscription
+they're already logged into, $0 (laptop on); **cloud** = API key + host. Cheaper
+host, same tokens: **Fly.io**.
+
+**Railway ToS:** a BotFather **Bot API** bot replying to its owner is allowed —
+the Fair Use clause only bars "bots or scrapers that violate applicable terms of
+service," and the "userbot" ban is for MTProto user-account automation (the
+`my.telegram.org` path we don't use). If unsure, Railway invites you to ask first.
 
 > **Context drift:** the cloud Robin only knows what's in the repo. Keep that
 > CLAUDE.md / skills copy minimal and re-push when it changes. Session resume is
@@ -169,5 +177,6 @@ with `sendMessageDraft` (Bot API 9.4+, all bots) fed by
 | Send fails on a restricted network (local listener) | The *send* needs a VPN if the network blocks api.telegram.org while running locally. Deploy to Railway and it disappears — its egress isn't restricted. *Receiving* always works. |
 | Bot replies to strangers | The allowlist check (`chat.id == CHAT_ID`) isn't applied — add it. |
 | Cloud bot has no context / "I don't know your goals" | The repo's CLAUDE.md / skills copy is missing or stale — add it and re-push. |
+| Cloud agent dies after ~15 min (401) | You used a subscription OAuth token (`CLAUDE_CODE_OAUTH_TOKEN`) in the cloud — it doesn't refresh headless. Use an `ANTHROPIC_API_KEY` for the cloud listener. |
 | Railway build fails on `claude: not found` | The `npm install -g` line didn't run — confirm the Dockerfile (Node base image) is detected, not Nixpacks. |
 | `my.telegram.org` asked for | Not needed here — that's only for telegram-mcp *reading* your chats (a power-lane bonus), not for a bot. |

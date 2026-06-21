@@ -108,6 +108,8 @@ on Claude Code and Codex.
 2. **Test it locally first** — run it on their machine (`python3 bridge.py`),
    have them text the bot something simple ("what's on my calendar today?"), and
    watch the reply land. This proves the whole loop before any cloud setup.
+   Locally, Robin runs on the Claude/Codex subscription they're **already signed
+   into** — no API key, no extra cost.
 3. Say the security rule plainly: an inbound message *drives their agent with
    their tools*. The allowlist (only their chat_id) + the "draft, you confirm"
    rule (Step 7) are not optional.
@@ -124,10 +126,26 @@ Move the listener to a small always-on cloud box so it keeps answering with the
 laptop shut. **Railway** is the right host — a persistent process that can run
 the agent. (Vercel can't: its functions cap at ~10s, which kills an agent run.)
 If their local network blocks `api.telegram.org`, deploying also fixes *sending*
-— Railway's egress isn't restricted, so no VPN is needed once it's in the cloud.
-Full recipe: `reference.md` → "Deploy to Railway".
+— Railway's egress isn't restricted. A BotFather **Bot API** bot replying to its
+owner is fine on Railway; their "userbot" ban targets MTProto user-account
+automation, which we don't use. Full recipe: `reference.md` → "Deploy to Railway".
 
-Walk them through it (you do the wiring; they click + paste):
+### First — the cost gate. Inform them, then ASK. Don't deploy silently.
+
+The cloud listener needs a **paid API key** (`ANTHROPIC_API_KEY`; Codex: an API
+key). **Their subscription can't run it** — a headless OAuth token 401s within
+~15 min and the terms put always-on automation on the API path. So spell out the
+trade and wait for a yes:
+
+> *"To run 24/7 with your laptop closed costs money: ~$5/mo for the host **plus**
+> per-use API tokens, and it needs an API key — not your Claude/Codex
+> subscription. Your free option is the local listener we just tested (works
+> while your machine is on). Want the always-on cloud version, or keep it local?"*
+
+If they say no, **stop here** — they already have a working two-way Robin. Only
+continue if they opt in.
+
+### Then walk them through it (you do the wiring; they click + paste):
 1. A **GitHub repo** holds the listener + a minimal copy of their Robin context
    (CLAUDE.md / AGENTS.md + the skills the listener needs). `reference.md` shows
    the layout and the Dockerfile.
@@ -137,13 +155,10 @@ Walk them through it (you do the wiring; they click + paste):
    these from the environment instead of `~/.robin/telegram.conf`.
 4. Deploy, then text the bot — it answers with the laptop closed.
 
-> **Be honest about cost — say it out loud.** Railway has no real always-on free
-> tier anymore: a tiny listener is ~$1/mo of usage on the **Hobby** plan ($5/mo,
-> includes $5 of usage), so budget **~$5/mo**. Running the agent in the cloud also
-> spends **API tokens** via the `ANTHROPIC_API_KEY` (billed per use — separate
-> from a Claude subscription). Want $0? Keep the **local** listener from Step 5
-> and accept that it only answers while the machine is on. Truly-free always-on
-> alternative to Railway: **Fly.io**.
+> **Cost detail:** Railway has no real always-on free tier — a tiny listener is
+> ~$1/mo of usage on **Hobby** ($5/mo, includes $5 usage) → budget **~$5/mo** for
+> the host, plus the per-use API tokens above. Cheaper host, same API tokens:
+> **Fly.io**. The only truly-free path stays the **local** listener (laptop on).
 
 ---
 
