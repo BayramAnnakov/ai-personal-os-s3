@@ -45,56 +45,25 @@ curl -s "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
 ```
 Invoke: *"Robin, use telegram-send to text me …"* → he runs `telegram-send.sh "…"`.
 
-## telegram-check (inbound — "Robin's ears", Checker tier)
+## bridge.py (the listener — always-on, instant)
 
-Reads only **new** messages using an offset cursor stored in `~/.robin/offset`:
-
-```bash
-#!/usr/bin/env bash
-# telegram-check.sh  → prints new messages (one JSON per line), advances the cursor
-source ~/.robin/telegram.conf
-OFFSET=$(cat ~/.robin/offset 2>/dev/null || echo 0)
-RESP=$(curl -s "https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${OFFSET}&timeout=0")
-# pass data via env (NOT stdin): the heredoc below IS stdin (the program), so
-# json must read $RESP from the environment, not sys.stdin.
-RESP="$RESP" CHAT="$TELEGRAM_CHAT_ID" python3 <<'PY'
-import os, json
-chat=int(os.environ["CHAT"]); data=json.loads(os.environ["RESP"]); last=None
-for u in data.get("result", []):
-    last=u["update_id"]
-    m=u.get("message", {})
-    if m.get("chat", {}).get("id")==chat and "text" in m:
-        print(json.dumps({"text": m["text"], "ts": m["date"]}))
-if last is not None:
-    open(os.path.expanduser("~/.robin/offset"), "w").write(str(last+1))
-PY
-```
-> *Verified live 2026-06-21: push, cursor-based check, and the full inbound→reply
-> loop all work. The `RESP=… python3 <<'PY'` form is deliberate — piping `$RESP`
-> into `python3 -` while also using a heredoc collides on stdin and Python reads
-> nothing.*
-
-## The scheduled "check & reply" task prompt (Checker tier)
-
-Paste into Claude Desktop **Scheduled Tasks / Routines** or Codex **Automations**,
-interval every 1–3 min:
-
-> Run telegram-check to get new Telegram messages from me. For each one: treat it
-> as an instruction, carry it out using my context, files, and skills, and reply
-> with telegram-send. **Anything that sends, changes, spends, or deletes in the
-> outside world: do NOT execute — reply with the draft and ask me to confirm.**
-> Only process messages telegram-check returns (it tracks what's new). Keep replies
-> short. Log each action to ~/.robin/actions.log.
-
----
-
-## bridge.py (Listener tier — always-on, instant)
+Long-polls Telegram, runs the user's agent headless per message, replies.
+Allowlist-gated. Reads secrets from `~/.robin/telegram.conf` **locally** or from
+**environment variables** in the cloud — so the same file works in both homes.
 
 ```python
 #!/usr/bin/env python3
 # Long-poll Telegram → run the user's agent headless → reply. Allowlist-gated.
 import json, subprocess, urllib.parse, urllib.request, os, pathlib
-conf = dict(l.strip().split("=",1) for l in open(os.path.expanduser("~/.robin/telegram.conf")))
+
+def load_conf():
+    p = os.path.expanduser("~/.robin/telegram.conf")          # local
+    if os.path.exists(p):
+        return dict(l.strip().split("=",1) for l in open(p) if "=" in l)
+    return {"TELEGRAM_TOKEN": os.environ["TELEGRAM_TOKEN"],    # cloud (Railway vars)
+            "TELEGRAM_CHAT_ID": os.environ["TELEGRAM_CHAT_ID"]}
+
+conf = load_conf()
 TOKEN, CHAT = conf["TELEGRAM_TOKEN"], int(conf["TELEGRAM_CHAT_ID"])
 API = f"https://api.telegram.org/bot{TOKEN}"
 SESS = pathlib.Path(os.path.expanduser("~/.robin/session"))
@@ -121,8 +90,62 @@ while True:
         api("sendChatAction", chat_id=CHAT, action="typing")
         api("sendMessage", chat_id=CHAT, text=agent(m["text"]))
 ```
-Run locally (`python3 bridge.py`) while the machine is on, or on a **non-RU VPS**
-(Railway etc.) for 24/7. Codex: swap the `cmd` line for `["codex","exec",text]`.
+Run locally first — `python3 bridge.py` while the machine is on — to prove the
+loop. Codex: swap the `cmd` line for `["codex","exec",text]`.
+
+> *Verified live 2026-06-21: push, cursor-based polling, and the full
+> inbound→reply loop all work end to end.*
+
+---
+
+## Deploy to Railway (24/7, no laptop)
+
+The listener becomes always-on by running on a small cloud box. **Railway** fits
+because it runs a persistent process (Vercel can't — its ~10s function cap kills
+an agent run). Bonus: if a local network blocks `api.telegram.org`, Railway's
+egress isn't restricted, so the *send* works with no VPN.
+
+**Repo layout** (a private GitHub repo Robin deploys from):
+```
+robin-listener/
+├── bridge.py                 # the listener above
+├── telegram-send.sh          # Robin's mouth (same script)
+├── Dockerfile                # builds the agent CLI + python
+├── CLAUDE.md  (or AGENTS.md)  # a MINIMAL copy of Robin's context
+└── skills/                   # only the skills the listener needs
+```
+
+**Dockerfile** (Claude Code path; Codex swap noted):
+```dockerfile
+FROM node:22-slim
+RUN apt-get update && apt-get install -y python3 && rm -rf /var/lib/apt/lists/*
+RUN npm install -g @anthropic-ai/claude-code      # Codex: @openai/codex
+WORKDIR /robin
+COPY . .
+CMD ["python3", "bridge.py"]                        # a worker — no exposed port
+```
+
+**Deploy steps** (you walk them through; they click + paste):
+1. Push `robin-listener/` to a **private** GitHub repo (never commit the token —
+   it arrives as a Railway variable, not a file).
+2. Railway → **New Project → Deploy from GitHub repo** → pick the repo. Railway
+   auto-detects the Dockerfile and runs it as a background worker.
+3. Railway → **Variables**, add: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`,
+   `ANTHROPIC_API_KEY` (Codex: the Codex/OpenAI key). `bridge.py` reads these
+   from the env; the `claude` CLI picks up `ANTHROPIC_API_KEY` automatically.
+4. Deploy. Text the bot with the laptop **closed** — it answers.
+
+**Cost — say it plainly.** No real free always-on tier: a tiny worker is ~$1/mo
+of usage, billed on **Hobby** ($5/mo, includes $5 usage) → budget **~$5/mo**.
+The agent also spends **API tokens** through `ANTHROPIC_API_KEY` (per-use, not a
+Claude subscription). $0 option: keep the **local** listener (laptop on). Free
+always-on alternative: **Fly.io**.
+
+> **Context drift:** the cloud Robin only knows what's in the repo. Keep that
+> CLAUDE.md / skills copy minimal and re-push when it changes. Session resume is
+> best-effort — Railway's filesystem resets on redeploy, so `~/.robin/session`
+> won't survive a deploy. That's fine for a Q&A bot; don't rely on it for long
+> threaded state.
 
 ---
 
@@ -142,8 +165,9 @@ with `sendMessageDraft` (Bot API 9.4+, all bots) fed by
 
 | Symptom | Fix |
 |---|---|
-| `sendMessage` → **403 host_not_allowed** | A *cloud* run (Routine) restricts outbound hosts → add `api.telegram.org` to its network allowlist. |
 | `sendMessage` → **401 / chat not found** | Wrong token or chat_id — re-run "Get chat_id". |
-| Send fails in Russia | The *send* needs a VPN (api.telegram.org blocked). *Receiving* still works; the shared workshop bot is the fallback. |
+| Send fails on a restricted network (local listener) | The *send* needs a VPN if the network blocks api.telegram.org while running locally. Deploy to Railway and it disappears — its egress isn't restricted. *Receiving* always works. |
 | Bot replies to strangers | The allowlist check (`chat.id == CHAT_ID`) isn't applied — add it. |
+| Cloud bot has no context / "I don't know your goals" | The repo's CLAUDE.md / skills copy is missing or stale — add it and re-push. |
+| Railway build fails on `claude: not found` | The `npm install -g` line didn't run — confirm the Dockerfile (Node base image) is detected, not Nixpacks. |
 | `my.telegram.org` asked for | Not needed here — that's only for telegram-mcp *reading* your chats (a power-lane bonus), not for a bot. |
