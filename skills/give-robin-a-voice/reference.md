@@ -65,22 +65,38 @@ def load_conf():
 
 conf = load_conf()
 TOKEN, CHAT = conf["TELEGRAM_TOKEN"], int(conf["TELEGRAM_CHAT_ID"])
+AGENT = os.environ.get("AGENT", "claude")        # "claude" | "codex"
 API = f"https://api.telegram.org/bot{TOKEN}"
 SESS = pathlib.Path(os.path.expanduser("~/.robin/session"))
 
 def api(method, **p):
     return json.load(urllib.request.urlopen(f"{API}/{method}?"+urllib.parse.urlencode(p)))
 
+# Codex needs an explicit api-key login (the env var alone 401s). Run once at boot.
+if AGENT == "codex":
+    k = os.environ.get("OPENAI_API_KEY", "")
+    if k:
+        subprocess.run(["codex","login","--with-api-key"], input=k, capture_output=True, text=True)
+
 def agent(text):
-    # Claude Code (full context — NOT --bare). Codex: ["codex","exec",text]
+    if AGENT == "codex":                         # uses ~/.codex/auth.json from the login above
+        r = subprocess.run(["codex","exec","--skip-git-repo-check",
+                            "--dangerously-bypass-approvals-and-sandbox", text],
+                           capture_output=True, text=True)
+        return (r.stdout.strip() or r.stderr.strip() or "(no reply)")[-3500:]
     cmd = ["claude","-p",text,"--output-format","json",
-           "--permission-mode","dontAsk","--allowedTools","Read,Bash(telegram-send.sh *)"]
+           "--permission-mode","dontAsk","--allowedTools","Read"]
     if SESS.exists(): cmd += ["--resume", SESS.read_text().strip()]
     out = json.loads(subprocess.run(cmd, capture_output=True, text=True).stdout)
-    SESS.write_text(out.get("session_id",""))
+    sid = out.get("session_id","")
+    if sid:
+        SESS.parent.mkdir(parents=True, exist_ok=True)   # ~/.robin may not exist in the cloud
+        SESS.write_text(sid)
     return out.get("result","(no reply)")
 
-offset = 0
+# Drain the backlog on boot so a restart doesn't re-answer old messages (or re-spend tokens).
+init = api("getUpdates", offset=-1, timeout=0).get("result", [])
+offset = (init[-1]["update_id"] + 1) if init else 0
 while True:
     for u in api("getUpdates", offset=offset, timeout=30).get("result", []):
         offset = u["update_id"] + 1
@@ -91,10 +107,12 @@ while True:
         api("sendMessage", chat_id=CHAT, text=agent(m["text"]))
 ```
 Run locally first — `python3 bridge.py` while the machine is on — to prove the
-loop. Codex: swap the `cmd` line for `["codex","exec",text]`.
+loop. Set `AGENT=codex` to use Codex instead of Claude.
 
-> *Verified live 2026-06-21: push, cursor-based polling, and the full
-> inbound→reply loop all work end to end.*
+> *Verified live on Railway 2026-06-21 — both agents, end to end: Claude
+> ("Paris is the capital of France.") and Codex ("17 times 4 is 68."). The test
+> caught two bugs now fixed above: the `~/.robin` session write needs `mkdir`,
+> and the boot-time backlog drain stops a restart re-answering old messages.*
 
 ---
 
@@ -115,25 +133,37 @@ robin-listener/
 └── skills/                   # only the skills the listener needs
 ```
 
-**Dockerfile** (Claude Code path; Codex swap noted):
+**Dockerfile** — the `npm install -g` line **is** how the agent CLI gets onto the
+cloud box (no API key needed at build time; it's a runtime variable). `git` is
+required for Codex. Installing both CLIs is fine; trim to one to slim the image.
 ```dockerfile
 FROM node:22-slim
-RUN apt-get update && apt-get install -y python3 && rm -rf /var/lib/apt/lists/*
-RUN npm install -g @anthropic-ai/claude-code      # Codex: @openai/codex
+RUN apt-get update && apt-get install -y python3 git && rm -rf /var/lib/apt/lists/*
+RUN npm install -g @anthropic-ai/claude-code @openai/codex   # trim to the one you use
 WORKDIR /robin
 COPY . .
-CMD ["python3", "bridge.py"]                        # a worker — no exposed port
+CMD ["python3", "bridge.py"]                                  # a worker — no exposed port
 ```
+
+**Get an API key** (the cloud agent needs one — see cost note below):
+- Claude: <https://console.anthropic.com> → API Keys → create key → `ANTHROPIC_API_KEY`.
+- Codex: <https://platform.openai.com/api-keys> → create key → `OPENAI_API_KEY`.
 
 **Deploy steps** (you walk them through; they click + paste):
 1. Push `robin-listener/` to a **private** GitHub repo (never commit the token —
    it arrives as a Railway variable, not a file).
 2. Railway → **New Project → Deploy from GitHub repo** → pick the repo. Railway
    auto-detects the Dockerfile and runs it as a background worker.
-3. Railway → **Variables**, add: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`,
-   `ANTHROPIC_API_KEY` (Codex: the Codex/OpenAI key). `bridge.py` reads these
-   from the env; the `claude` CLI picks up `ANTHROPIC_API_KEY` automatically.
+3. Railway → **Variables**, add: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`, and the
+   key — `ANTHROPIC_API_KEY` for Claude, or `OPENAI_API_KEY` + `AGENT=codex` for
+   Codex. **Claude** reads `ANTHROPIC_API_KEY` automatically; **Codex** does not —
+   `bridge.py` runs `codex login --with-api-key` at boot to write `~/.codex/auth.json`.
 4. Deploy. Text the bot with the laptop **closed** — it answers.
+
+> **Single consumer only.** Telegram long-poll allows ONE `getUpdates` reader per
+> bot. Don't run the local listener and the cloud one against the same bot at
+> once, and keep Railway at **1 replica** — two readers → `409 Conflict` and
+> double replies. (A redeploy briefly overlaps old+new; it self-heals.)
 
 **Cost & auth — say it plainly.** Two bills: the **host** (~$5/mo — Railway
 **Hobby**, $5/mo incl. $5 usage; a tiny worker's ~$1 fits inside it) and the
@@ -179,4 +209,13 @@ with `sendMessageDraft` (Bot API 9.4+, all bots) fed by
 | Cloud bot has no context / "I don't know your goals" | The repo's CLAUDE.md / skills copy is missing or stale — add it and re-push. |
 | Cloud agent dies after ~15 min (401) | You used a subscription OAuth token (`CLAUDE_CODE_OAUTH_TOKEN`) in the cloud — it doesn't refresh headless. Use an `ANTHROPIC_API_KEY` for the cloud listener. |
 | Railway build fails on `claude: not found` | The `npm install -g` line didn't run — confirm the Dockerfile (Node base image) is detected, not Nixpacks. |
+| Codex → **401 "Missing bearer"** | `codex exec` does NOT auth from `OPENAI_API_KEY` alone — it needs `codex login --with-api-key` to write `~/.codex/auth.json`. The bridge does this at boot; confirm `OPENAI_API_KEY` is set. |
+| **409 Conflict** / bot replies twice | Two `getUpdates` readers on one bot (local + cloud, or 2 Railway replicas). Run only one. Self-heals after a redeploy overlap. |
 | `my.telegram.org` asked for | Not needed here — that's only for telegram-mcp *reading* your chats (a power-lane bonus), not for a bot. |
+
+## Docs (authoritative references)
+
+- Telegram Bot API (methods used: getUpdates, sendMessage, sendChatAction, sendMessageDraft): <https://core.telegram.org/bots/api>
+- Claude Code headless / `-p` mode: <https://code.claude.com/docs/en/headless>
+- Codex non-interactive / `exec`: <https://developers.openai.com/codex/noninteractive>
+- Railway Fair Use (bots allowed; userbots not): <https://railway.com/legal/fair-use>

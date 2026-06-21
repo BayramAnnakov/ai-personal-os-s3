@@ -150,10 +150,15 @@ continue if they opt in.
    (CLAUDE.md / AGENTS.md + the skills the listener needs). `reference.md` shows
    the layout and the Dockerfile.
 2. On Railway: **New Project → Deploy from GitHub repo**, pick that repo.
-3. Add three variables in Railway: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`, and
-   `ANTHROPIC_API_KEY` (Codex: the Codex/OpenAI key). The cloud `bridge.py` reads
-   these from the environment instead of `~/.robin/telegram.conf`.
-4. Deploy, then text the bot — it answers with the laptop closed.
+3. The Dockerfile installs the agent CLI on the box (`npm i -g …` — `reference.md`).
+   Get the API key for them: Claude → <https://console.anthropic.com> (`ANTHROPIC_API_KEY`);
+   Codex → <https://platform.openai.com/api-keys> (`OPENAI_API_KEY`).
+4. Add variables in Railway: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`, and the key —
+   `ANTHROPIC_API_KEY` for Claude, or `OPENAI_API_KEY` + `AGENT=codex` for Codex.
+   `bridge.py` reads these from the env. (Codex needs a one-time api-key login,
+   which the bridge does at boot — see `reference.md`.)
+5. Deploy, then text the bot — it answers with the laptop closed. Run only **one**
+   listener per bot (local *or* cloud, not both) — two pollers fight (409).
 
 > **Cost detail:** Railway has no real always-on free tier — a tiny listener is
 > ~$1/mo of usage on **Hobby** ($5/mo, includes $5 usage) → budget **~$5/mo** for
