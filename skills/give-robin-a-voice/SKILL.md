@@ -1,24 +1,31 @@
 ---
 name: give-robin-a-voice
 description: >-
-  Set up two-way Telegram for the user's AI assistant ("Robin"), end to end:
-  create the bot, let Robin push messages to the user, let the user text Robin
-  and get a reply that acts with their context and skills, and deploy it to the
-  cloud so it runs 24/7 with the laptop closed. Auto-detects whether it's running
-  in Claude Code or Codex and works on both. Use when the user says "give Robin a
-  voice", "set up Telegram", "I want to text my assistant", "two-way bot",
-  "/give-robin-a-voice", or wants their agent to message them on Telegram. Walks
-  them through it conversationally — they never edit code by hand.
+  Set up a two-way chat channel for the user's AI assistant ("Robin") on
+  Telegram OR Slack, end to end: create the bot/app, let Robin push messages to
+  the user, let the user message Robin and get a reply that acts with their
+  context and skills, and deploy it to the cloud so it runs 24/7 with the laptop
+  closed. Auto-detects whether it's running in Claude Code or Codex and works on
+  both. Use when the user says "give Robin a voice", "set up Telegram", "set up
+  Slack", "I want to text/DM my assistant", "two-way bot", "Robin in Slack",
+  "/give-robin-a-voice", or wants their agent to message them. Walks them through
+  it conversationally — they never edit code by hand.
 license: MIT
 ---
 
 # Give Robin a Voice
 
 You (the assistant) are running a **setup wizard**. Your job: get the user from
-"my assistant can't message me" to "I can text Robin and he texts me back" —
-**conversationally**, doing the technical work yourself. The user should only
-ever (a) click around in Telegram/their desktop app when you tell them to, and
-(b) paste one token. You do everything else.
+"my assistant can't message me" to "I can message Robin and he messages me back"
+— **conversationally**, doing the technical work yourself. The user should only
+ever (a) click around in Telegram/Slack when you tell them to, and (b) paste a
+token or two. You do everything else.
+
+This wizard supports **two channels — Telegram and Slack.** The 8 steps below are
+identical in shape for both; only the create-the-bot, send, and listen mechanics
+differ. **Telegram is the default; the exact scripts live in `reference.md`.**
+**For Slack, every script lives in `reference-slack.md`** — follow the same steps,
+substituting the Slack column.
 
 Keep it warm and concrete. One step at a time. Confirm each step worked before
 moving on. If something fails, fix it for them — don't hand them an error.
@@ -41,7 +48,36 @@ cloud. Just tell them what you're setting up and move on.
 
 ---
 
+## Step 0.5 — Pick the channel: Telegram or Slack (ASK this one)
+
+This is the one real choice. Ask: *"Where do you want Robin to live — Telegram or
+Slack?"* If they already named one ("set up Slack", "Robin in Slack"), skip the
+question and go. Rough steer if they're unsure: **Telegram** if they want it on
+their phone as a personal bot; **Slack** if their team/work already lives there
+and they want Robin in a DM next to everything else.
+
+Both reach the exact same outcome and run the same agent — only the wiring
+differs. The mapping:
+
+| | Telegram | Slack |
+|---|---|---|
+| Make the bot | @BotFather → token | Slack **App** from a manifest |
+| Secrets | `TELEGRAM_TOKEN` + `chat_id` | `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN` + user id |
+| Listen (inbound) | long-poll `getUpdates` | **Socket Mode** (WebSocket) |
+| Scripts live in | `reference.md` | `reference-slack.md` |
+
+**If they pick Slack: switch to `reference-slack.md` now and use it for every
+script from here on.** The steps below stay the same in shape — each one points to
+the Slack equivalent. Two Slack bonuses worth saying: no VPN needed (Slack isn't
+network-blocked like Telegram), and no `409` "two listeners" trap.
+
+---
+
 ## Step 1 — Make the bot (the only thing they do by hand)
+
+> **Slack:** instead of BotFather, they create a Slack **App from a manifest**
+> (one paste sets all scopes + Socket Mode), install it, and copy **two** tokens
+> (`xoxb-…` bot + `xapp-…` app-level). Full recipe: `reference-slack.md` → Step 1.
 
 Tell them, in Telegram:
 1. Open a chat with **@BotFather** → send `/newbot`.
@@ -58,6 +94,9 @@ When they paste the token, **do not echo it back**. Store it (Step 3).
 ---
 
 ## Step 2 — Get their chat_id (do this for them)
+
+> **Slack:** the equivalent of `chat_id` is their **user id** (`U…`) — fastest is
+> Slack profile → ⋮ → *Copy member ID*. See `reference-slack.md` → Step 2.
 
 Robin needs to know *where* to send. Two ways — prefer the automatic one:
 
@@ -78,12 +117,18 @@ Write the token + chat_id to a config file the scripts read — **never hard-cod
 them, never commit them.** Create `~/.robin/telegram.conf` (mode 600) and make
 sure `.robin/` is git-ignored. Exact commands: `reference.md` → "Store secrets".
 
+> **Slack:** same idea, into `~/.robin/slack.conf` (the two tokens + user id) —
+> `reference-slack.md` → Step 3.
+
 ---
 
 ## Step 4 — Give Robin a mouth (outbound) and test it
 
 Install the **`telegram-send`** capability — a tiny script that calls the
 Telegram Bot API to send a message. Same on Claude Code and Codex.
+
+> **Slack:** the same idea is **`slack-send`** (calls `chat.postMessage`) —
+> `reference-slack.md` → "slack-send". Everything else in this step is identical.
 
 1. Drop the `telegram-send` skill/script in place (`reference.md` → "telegram-send").
 2. **Test it now:** send the user a real message ("👋 Robin can talk now.").
@@ -99,6 +144,11 @@ Telegram Bot API to send a message. Same on Claude Code and Codex.
 Set up a small **listener** that watches Telegram and, for each message the user
 sends, runs *their* agent (their context, files, skills) and replies. Same idea
 on Claude Code and Codex.
+
+> **Slack:** the listener is `bridge_slack.py` — it uses **Socket Mode** (an
+> outbound WebSocket via `slack_bolt`, no public URL) instead of long-polling, and
+> needs one `pip install slack_bolt`. Same allowlist, same `agent()`, same
+> local-then-cloud flow. Full script: `reference-slack.md` → "bridge_slack.py".
 
 1. Scaffold the listener (`reference.md` → "bridge.py"): it long-polls
    `getUpdates` (offset cursor) → **allowlists their chat_id** → runs
@@ -129,6 +179,12 @@ If their local network blocks `api.telegram.org`, deploying also fixes *sending*
 — Railway's egress isn't restricted. A BotFather **Bot API** bot replying to its
 owner is fine on Railway; their "userbot" ban targets MTProto user-account
 automation, which we don't use. Full recipe: `reference.md` → "Deploy to Railway".
+
+> **Slack:** the deploy is the same Railway worker — Socket Mode dials out, so
+> still no exposed port. Only diffs: the Dockerfile adds `pip install slack_bolt`,
+> and the variables are `SLACK_BOT_TOKEN` / `SLACK_APP_TOKEN` / `SLACK_USER_ID`
+> (plus the same API key). No `409` to worry about, but still run **one** home at
+> a time. Full recipe: `reference-slack.md` → "Deploy to Railway".
 
 ### First — the cost gate. Inform them, then ASK. Don't deploy silently.
 
@@ -194,9 +250,12 @@ it now or note it for Office Hours. Never end on a silent failure.
 - **Auto-detect, don't ask:** you already know if you're Claude Code or Codex —
   pick the right column from `reference.md` and go. No "which tool?" question.
 - **Co-equal:** every step works on Claude Code and Codex — use the right column
-  from `reference.md`. Do NOT use Claude Code "Channels" (`/telegram:configure`):
-  it's research-preview and has no Codex equivalent. The Bot API path here works
-  for both.
+  from `reference.md` (Telegram) or `reference-slack.md` (Slack). Do NOT use Claude
+  Code "Channels" (`/telegram:configure`): it's research-preview and has no Codex
+  equivalent. The Bot API / Slack API paths here work for both agents.
+- **Two channels, one shape:** Telegram (`reference.md`) and Slack
+  (`reference-slack.md`) follow the identical 8 steps — pick the channel once in
+  Step 0.5, then read only that channel's reference. Don't mix scripts across them.
 - **One listener, two homes:** the same `bridge.py` runs locally (test, $0, laptop
   must be on) and on Railway (24/7, ~$5/mo, laptop closed). Local first to feel it
   work, then deploy. Reading secrets from a conf file locally vs env vars in the
